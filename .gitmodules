@@ -1,0 +1,3 @@
+[submodule "sys/espeak-ng"]
+	path = sys/espeak-ng
+	url = https://github.com/bunnie/espeak-ng.git

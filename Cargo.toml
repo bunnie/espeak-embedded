@@ -1,0 +1,20 @@
+[package]
+name = "espeak-embedded"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+xous = "0.9.7"
+xous-ipc = "0.9.7"
+xous-names = "0.9.7"
+log = "0.4.14"
+num-derive = {version = "0.3.3", default-features = false}
+num-traits = {version = "0.2.14", default-features = false}
+rkyv = {version = "0.4.3", default-features = false, features = ["const_generics"]}
+xous-tts-backend = {path = "../tts-backend"}
+espeak_sys = {path = "sys"}
+
+[features]
+default = []
