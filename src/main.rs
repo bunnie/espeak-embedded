@@ -18,6 +18,7 @@ static mut CB: Option<Callback> = None;
 
 extern fn tts_cb(samples: *const c_ushort, count: c_int, _event: espeak_EVENT) -> i32 {
     if let Some(cb) = unsafe{CB} {
+        // log::info!("cb: {}", count);
         let mut tts_data = TtsBackendData {
             data: [0u16; MAX_WAV_BUF_SAMPLES],
             len: count as u32,
