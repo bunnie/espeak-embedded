@@ -180,6 +180,7 @@ pub struct espeak_EVENT {
 }
 extern "C" {
     pub fn espeak_ffi_setup(
-        cb: extern fn(samples: *const c_ushort, count: c_int, event: espeak_EVENT) -> i32
+        cb: extern fn(samples: *const c_ushort, count: c_int, event: espeak_EVENT) -> i32,
+        rate: i32,
      ) -> c_int;
 }

@@ -12,7 +12,7 @@ pub use bindings::*;
 mod logger;
 use logger::*;
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering, AtomicI32};
 use std::sync::{Arc, Mutex};
 
 use num_traits::*;
@@ -119,8 +119,10 @@ fn xmain() -> ! {
     let synth_sid = xous::create_server().unwrap();
     let synth_cid = xous::connect(synth_sid).unwrap();
     let synth_string = Arc::new(Mutex::new(String::new()));
+    let words_per_minute = Arc::new(AtomicI32::new(175));
     std::thread::spawn({
         let synth_string = synth_string.clone();
+        let words_per_minute = words_per_minute.clone();
         move || {
             loop {
                 let msg = xous::receive_message(synth_sid).unwrap();
@@ -135,6 +137,7 @@ fn xmain() -> ! {
                             unsafe {
                                 espeak_ffi_setup(
                                     tts_cb,
+                                    words_per_minute.load(Ordering::SeqCst),
                                 )
                             };
                             log::debug!("espeak sample rate: {}", unsafe {espeak_ng_GetSampleRate()});
@@ -176,6 +179,7 @@ fn xmain() -> ! {
                     // the TTS_RUNNING state changing to false
                     if TTS_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
                         // we weren't able to get the lock. abort synthesis, until we can get the lock
+                        let mut timeout = 0;
                         loop {
                             TTS_SHOULD_ABORT.store(true, Ordering::SeqCst);
                             xous::yield_slice(); // we don't have a ticktimer in the FFI land, so a busy-wait is the best we can do until we get a condvar in `libstd`
@@ -183,6 +187,11 @@ fn xmain() -> ! {
                                 break;
                             }
                             xous::yield_slice(); // aggressively yield our time
+                            timeout += 1;
+                            if timeout > 100 { // this is about 1-2 seconds timeout
+                                log::warn!("timeout waiting for synthesis to abort");
+                                break;
+                            }
                         }
                     }
                     // at this point TTS_RUNNING must be true, so we're clear to change the state variables
@@ -203,6 +212,9 @@ fn xmain() -> ! {
                         op: config.op,
                         samples_per_cb: config.samples_per_cb,
                     });
+                };
+                if let Some(wpm) = config.words_per_minute {
+                    words_per_minute.store(wpm as i32, Ordering::SeqCst);
                 }
             },
             Some(TtsBeOpcode::Quit) => {
