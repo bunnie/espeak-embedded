@@ -63,6 +63,7 @@ fn main() {
     base_config.include("C:\\Users\\bunnie\\riscv64\\riscv64-unknown-elf\\include\\sys");
     base_config.include("C:\\Users\\bunnie\\riscv64\\riscv64-unknown-elf\\include\\machine");
     base_config.include("C:\\Users\\bunnie\\riscv64\\riscv64-unknown-elf\\include\\bits");
+    base_config.opt_level(3);
 
     for src in espeak_srcs {
         base_config.file(src);
