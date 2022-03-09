@@ -132,7 +132,7 @@ fn xmain() -> ! {
                             // ASSUME: the caller set the TTS_RUNNING lock before making the call
                             let text = synth_string.lock().unwrap().clone();
                             let msg_len = text.len();
-                            log::debug!("espeak synth: {}", &text);
+                            log::trace!("espeak synth: {}", &text);
                             let cstr = std::ffi::CString::new(text).expect("couldn't convert String to Cstring");
                             unsafe {
                                 espeak_ffi_setup(
@@ -140,7 +140,7 @@ fn xmain() -> ! {
                                     words_per_minute.load(Ordering::SeqCst),
                                 )
                             };
-                            log::debug!("espeak sample rate: {}", unsafe {espeak_ng_GetSampleRate()});
+                            log::trace!("espeak sample rate: {}", unsafe {espeak_ng_GetSampleRate()});
                             unsafe {
                                 espeak_ffi_synth(
                                 cstr.as_ptr(),
@@ -152,7 +152,7 @@ fn xmain() -> ! {
                                 espeak_ffi_sync();
                                 espeak_ng_Terminate();
                             }
-                            log::trace!("espeak done");
+                            log::debug!("espeak done");
                             TTS_RUNNING.store(false, Ordering::SeqCst);
                         }
                     }
@@ -180,8 +180,8 @@ fn xmain() -> ! {
                     if TTS_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
                         // we weren't able to get the lock. abort synthesis, until we can get the lock
                         let mut timeout = 0;
+                        TTS_SHOULD_ABORT.store(true, Ordering::SeqCst);
                         loop {
-                            TTS_SHOULD_ABORT.store(true, Ordering::SeqCst);
                             xous::yield_slice(); // we don't have a ticktimer in the FFI land, so a busy-wait is the best we can do until we get a condvar in `libstd`
                             if TTS_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
                                 break;
@@ -193,6 +193,8 @@ fn xmain() -> ! {
                                 break;
                             }
                         }
+                        TTS_SHOULD_ABORT.store(false, Ordering::SeqCst);
+                        log::info!("abort processed");
                     }
                     // at this point TTS_RUNNING must be true, so we're clear to change the state variables
                     synth_string.lock().unwrap().clear();

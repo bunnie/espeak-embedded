@@ -67,5 +67,6 @@ fn main() {
     }
     base_config.define("EMBEDDED", None);
     base_config.define("NO_STD", None);
+    // base_config.define("FFI_DEBUG", None);
 	base_config.compile("libespeak.a");
 }
