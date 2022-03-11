@@ -131,7 +131,7 @@ pub unsafe extern "C" fn realloc(
             let ptr = alloc.as_mut_ptr();
             // store a reference to the allocated vector, under the theory that this keeps it from going out of scope
             C_HEAP.push(alloc);
-            log::info!("-/+N->{:x}({})#{}", ptr as usize, size, C_HEAP.len());
+            log::trace!("-/+N->{:x}({})#{}", ptr as usize, size, C_HEAP.len());
 
             ptr as *mut c_void
             /*for region in C_HEAP.iter() {
