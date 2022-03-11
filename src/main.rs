@@ -153,6 +153,8 @@ fn xmain() -> ! {
                                 espeak_ng_Terminate();
                             }
                             log::debug!("espeak done");
+                            // espeak leaks memory. You need to do this or else we run out of space.
+                            reset_heap();
                             TTS_RUNNING.store(false, Ordering::SeqCst);
                         }
                     }

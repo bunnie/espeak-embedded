@@ -31,6 +31,10 @@ pub unsafe extern "C" fn libc_putchar(
     }
 }
 
+pub fn reset_heap() {
+    unsafe{C_HEAP.clear();}
+}
+
 static mut C_HEAP: Vec::<Vec::<u8>> = Vec::new();
 #[export_name = "malloc"]
 pub unsafe extern "C" fn malloc(
@@ -50,7 +54,7 @@ pub unsafe extern "C" fn malloc(
     let ptr = alloc.as_mut_ptr();
     // store a reference to the allocated vector, under the theory that this keeps it from going out of scope
     C_HEAP.push(alloc);
-    log::trace!("allocated: {:x}({})#{}", ptr as usize, size, C_HEAP.len());
+    log::trace!("+{:x}({})#{}", ptr as usize, size, C_HEAP.len());
 
     ptr as *mut c_void
 }
@@ -69,11 +73,11 @@ pub unsafe extern "C" fn free(
     match region_index {
         Some(index) => {
             let mut removed = C_HEAP.remove(index);
-            log::trace!("free success: {:x}({})#{}", ptr as usize, removed.len(), C_HEAP.len());
+            log::trace!("-{:x}({})#{}", ptr as usize, removed.len(), C_HEAP.len());
             removed.clear();
         }
         None => {
-            log::trace!("free failed, debug! Requested free: {:x}", ptr as usize);
+            log::info!("free failed, debug! Requested free: {:x}", ptr as usize);
             for region in C_HEAP.iter() {
                 log::trace!("  {:x}({})", region.as_ptr() as usize, region.len());
             }
@@ -95,7 +99,7 @@ pub unsafe extern "C" fn realloc(
     }
     match region_index {
         Some(index) => {
-            log::trace!("realloc/free success: {:x}", ptr as usize);
+            log::trace!("-/+: {:x}", ptr as usize);
             let mut old = C_HEAP.remove(index);
             let checked_size = if size == 0 {
                 1 // at least 1 element so we have a pointer we can pass back
@@ -109,7 +113,7 @@ pub unsafe extern "C" fn realloc(
             }
             old.clear();
             C_HEAP.push(alloc);
-            log::trace!("realloc/allocated: {:x}", ret_ptr as usize);
+            log::trace!("-/+: {:x}({})#{}", ret_ptr as usize, size, C_HEAP.len());
 
             ret_ptr as *mut c_void
         }
@@ -127,7 +131,7 @@ pub unsafe extern "C" fn realloc(
             let ptr = alloc.as_mut_ptr();
             // store a reference to the allocated vector, under the theory that this keeps it from going out of scope
             C_HEAP.push(alloc);
-            log::trace!("allocated: {:x}({})#{}", ptr as usize, size, C_HEAP.len());
+            log::info!("-/+N->{:x}({})#{}", ptr as usize, size, C_HEAP.len());
 
             ptr as *mut c_void
             /*for region in C_HEAP.iter() {
