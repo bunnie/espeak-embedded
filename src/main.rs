@@ -104,8 +104,7 @@ pub enum SynthOp {
     Quit,
 }
 
-#[xous::xous_main]
-fn xmain() -> ! {
+fn main() -> ! {
     log::set_logger(&LOGGER)
         .map(|()| log::set_max_level(log::LevelFilter::Info)).unwrap();
     log::info!("my PID is {}", xous::process::id());

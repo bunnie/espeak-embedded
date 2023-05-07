@@ -3,7 +3,7 @@ extern crate cc;
 use std::env::set_var;
 
 fn main() {
-    set_var("CC", "riscv64-unknown-elf-gcc");  // set the compiler to what's installed on the system
+    set_var("CC", "riscv-none-elf-gcc");  // set the compiler to what's installed on the system
 
     let espeak_srcs = vec![
         "espeak-ng/src/libespeak-ng/translate.c",
