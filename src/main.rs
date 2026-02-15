@@ -40,7 +40,7 @@ int SynthCallback(short *wav, int numsamples, espeak_EVENT *events);
 
    Callback returns: 0=continue synthesis,  1=abort synthesis.
 */
-extern fn tts_cb(samples: *const c_ushort, count: c_int, _event: espeak_EVENT) -> i32 {
+extern "C" fn tts_cb(samples: *const c_ushort, count: c_int, _event: espeak_EVENT) -> i32 {
     if let Some(cb) = unsafe{CB} {
         let mut tts_data = TtsBackendData {
             data: [0u16; MAX_WAV_BUF_SAMPLES],
@@ -142,7 +142,7 @@ fn main() -> ! {
                             log::trace!("espeak sample rate: {}", unsafe {espeak_ng_GetSampleRate()});
                             unsafe {
                                 espeak_ffi_synth(
-                                cstr.as_ptr(),
+                                cstr.as_ptr() as *const i8,
                                 msg_len as c_uint,
                                 ::core::ptr::null::<c_void>() as *mut c_void,
                             );}
@@ -174,7 +174,7 @@ fn main() -> ! {
             Some(TtsBeOpcode::StrToWav) => {
                 let buffer = unsafe { Buffer::from_memory_message(msg.body.memory_message().unwrap()) };
                 let msg = buffer.to_original::<TtsBackendMsg, _>().unwrap();
-                log::debug!("outer processing for string {}", msg.text.as_str().unwrap_or("UTF-8 error"));
+                log::debug!("outer processing for string {}", msg.text.as_str());
                 if unsafe{CB.is_some()} {
                     // if the synthesizer is running, indicate it should abort, then wait until the abortion is confirmed via
                     // the TTS_RUNNING state changing to false
@@ -199,7 +199,7 @@ fn main() -> ! {
                     }
                     // at this point TTS_RUNNING must be true, so we're clear to change the state variables
                     synth_string.lock().unwrap().clear();
-                    synth_string.lock().unwrap().push_str(msg.text.as_str().unwrap_or("UTF8-error"));
+                    synth_string.lock().unwrap().push_str(msg.text.as_str());
                     send_message(synth_cid,
                         Message::new_scalar(SynthOp::NewString.to_usize().unwrap(), 0, 0, 0, 0)
                     ).expect("couldn't kick off a new string to the synth thread");
